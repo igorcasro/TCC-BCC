@@ -1,0 +1,6 @@
+==== LOG DE PROCESSAMENTO DE LEGISLAÇÃO ====
+[OK] constituicao_federal_EC91_2016.jsonl: 5440 artigos segmentados.
+[OK] codigo_penal_7ed.jsonl: 470 artigos segmentados.
+[OK] declaracao_universal_dos_direitos_humanos.jsonl: 30 artigos segmentados.
+
+TOTAL PROCESSADOS: 3
