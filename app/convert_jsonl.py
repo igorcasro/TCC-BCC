@@ -12,7 +12,8 @@ from utils import limpar_sumario_e_imagens
 LEGISLACAO_TIPOS = {
     "codigo_penal": "Direito Penal",
     "constituicao_federal" : "Direito Constitucional",
-    "declaracao_universal_direitos_humanos": "Direitos Humanos"
+    "declaracao_universal_dos_direitos_humanos": "Direitos Humanos"
+    
 }
 
 # Buscando arquivos e definindo paths
