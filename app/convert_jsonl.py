@@ -110,7 +110,6 @@ with open(log_path, 'w', encoding='utf-8') as log:
                     f.write(json.dumps(artigo, ensure_ascii=False) + '\n')
             total_processados += 1
 
-            # Salvamento
             with open(rag_output_file, 'w', encoding='utf-8') as f:
                 for rag_artigo in rag_artigos:
                     f.write(json.dumps(rag_artigo, ensure_ascii=False) + '\n')
