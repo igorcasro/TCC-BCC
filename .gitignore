@@ -1,2 +1,4 @@
 /.venv/
 /app/__pycache__/
+**/*.Identifier
+/Llama-3.2-3B/

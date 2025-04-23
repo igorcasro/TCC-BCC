@@ -1,7 +1,6 @@
-import json
 import os
 import faiss
-import pandas as pd
+
 
 from sentence_transformers import SentenceTransformer
 from datasets import load_dataset
@@ -13,6 +12,9 @@ output_path = os.path.join(project_root, 'data', 'legislacao_embeddings')
 
 if not os.path.exists(output_path):
     os.makedirs(output_path)
+
+# Parâmetro para aplicar document chunking
+max_size_chunk = 500
 
 # Carregar o dataset a ser utilizado para a geração dos embeddings
 # utilizando HuggingFace Datasets
@@ -33,7 +35,6 @@ print(f"Total de {len(embeddings)} embeddings gerados")
 # Criar um índice FAISS com os embeddings gerados
 vector_dim = embeddings.shape[1]
 index = faiss.IndexFlatIP(vector_dim)
-index.add(embeddings)
 
 # Salvar o índice FAISS em um arquivo
 faiss.write_index(index, os.path.join(output_path, 'faiss_embeddings.bin'))

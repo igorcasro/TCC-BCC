@@ -1,9 +1,9 @@
 ==== LOG DE PROCESSAMENTO DE LEGISLAÇÃO ====
-[OK] declaracao_universal_dos_direitos_humanos.jsonl: 30 artigos segmentados.
-[OK] rag_declaracao_universal_dos_direitos_humanos.jsonl: 30 artigos segmentados.
 [OK] codigo_penal.jsonl: 470 artigos segmentados.
 [OK] rag_codigo_penal.jsonl: 470 artigos segmentados.
-[OK] constituicao_federal.jsonl: 5440 artigos segmentados.
-[OK] rag_constituicao_federal.jsonl: 5440 artigos segmentados.
+[OK] constituicao_federal.jsonl: 5421 artigos segmentados.
+[OK] rag_constituicao_federal.jsonl: 5421 artigos segmentados.
+[OK] declaracao_universal_dos_direitos_humanos.jsonl: 30 artigos segmentados.
+[OK] rag_declaracao_universal_dos_direitos_humanos.jsonl: 30 artigos segmentados.
 
 TOTAL PROCESSADOS: 6

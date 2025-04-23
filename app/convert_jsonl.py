@@ -59,6 +59,22 @@ with open(log_path, 'w', encoding='utf-8') as log:
             texto_limpo = substituir_caracteres_com_re(texto_limpo)
             print(f'Termos comuns removidos de {base_name}')
 
+            # removendo --- ou ... desnecessários
+            texto_limpo = re.sub(r'[-_.]{3,}', '', texto_limpo)
+            print(f"Hífens e pontos excessivos removidos de {base_name}")
+
+            # removendo - * desnecessários
+            texto_limpo = re.sub(r'[-*]', '', texto_limpo)
+            print(f"Hífens seguidos de asteriscos removidos de {base_name}")
+
+            # removendo # desnecessários
+            texto_limpo = re.sub(r'[#]', '', texto_limpo)
+            print(f"Hasthtags removidos de {base_name}")  
+
+            # remoção de 'o' e 'a' isolados no texto (resquícios de símbolos como º e ª)
+            texto_limpo = re.sub(r'(\s)[oa](?=\s)', '', texto_limpo) 
+            print(f'Letras isoladas removidas de {base_name}')       
+
             # trocando os algorismos romanos do texto por ordinais
             texto_limpo = substituir_numeros_romanos(texto_limpo)
             for romano, escrito in mapeamento_romanos_ordinais.items():
@@ -128,4 +144,4 @@ with open(log_path, 'w', encoding='utf-8') as log:
         for f in erros:
             log.write(f' - {f}\n')
 
-print(f'✅ Processamento finalizado! {total_processados + rag_total_processados} arquivos convertidos.')
+print(f'Processamento finalizado! {total_processados + rag_total_processados} arquivos convertidos.')
