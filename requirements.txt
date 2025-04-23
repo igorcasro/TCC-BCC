@@ -60,6 +60,7 @@ multiprocess==0.70.16
 narwhals==1.35.0
 networkx==3.4.2
 ninja==1.11.1.4
+nltk==3.9.1
 numpy==2.2.4
 nvidia-cublas-cu12==12.4.5.8
 nvidia-cuda-cupti-cu12==12.4.127
