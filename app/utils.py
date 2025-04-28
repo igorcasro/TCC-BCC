@@ -1,5 +1,10 @@
 # Função para substituir caracteres especiais com expressões regulares
 import re
+import nltk
+nltk.download('punkt')
+nltk.download('punkt_tab')
+
+from nltk.tokenize import sent_tokenize
 
 # Dicionário para mapear números romanos para ordinais
 mapeamento_romanos_ordinais = {
@@ -82,6 +87,9 @@ def limpar_sumario_e_imagens(texto):
     # Remover imagens do markdown ![](imagem.png)
     texto = re.sub(r'!\[.*?\]\(.*?\)', '', texto)
 
+    # Remover tags tipo <!image>, <! image >, etc. (HTML/Markdown estranhos)
+    texto = re.sub(r'<\s*!?\s*image\s*.*?>', '', texto, flags=re.IGNORECASE)
+
     # Remover cabeçalhos comuns de legislação
     padroes_indesejados = [
         r'Presidência da República',
@@ -94,3 +102,22 @@ def limpar_sumario_e_imagens(texto):
         texto = re.sub(padrao, '', texto, flags=re.IGNORECASE)
 
     return texto
+
+# Chunking baseado em sentenças
+def chunk_por_sentencas(texto, tamanho_max_chars=1200):
+    sentencas = sent_tokenize(texto, language='portuguese')
+    blocos = []
+    bloco_atual = ""
+
+    for sentenca in sentencas:
+        if len(bloco_atual) + len(sentenca) + 1 <= tamanho_max_chars:
+            bloco_atual += (" " if bloco_atual else "") + sentenca
+        else:
+            if bloco_atual:
+                blocos.append(bloco_atual.strip())
+            bloco_atual = sentenca
+
+    if bloco_atual:
+        blocos.append(bloco_atual.strip())
+
+    return blocos

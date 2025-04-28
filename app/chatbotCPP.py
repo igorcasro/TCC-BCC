@@ -1,10 +1,12 @@
 import streamlit as st
 import faiss
 import os, json
+import numpy as np
 
 from langchain_core.messages import AIMessage, HumanMessage
 from llama_cpp import Llama
 from sentence_transformers import SentenceTransformer
+    
 
 # Carregando índice FAISS, juntamente com toda a 
 # legislação processada e salva em arquivo json
@@ -42,29 +44,56 @@ def load_model():
 llm = load_model()
 
 # Busca o contexto da pergunta, baseado no FAISS
-def recupera_contexto(pergunta, top_k=30, max_chars=3200):
-    vetor = model_embeddings.encode([pergunta])
-    D, I = index.search(vetor, top_k)
+def recupera_contexto(pergunta, top_k=10, max_chars=3200):
+    """
+    Recupera contexto relevante usando FAISS e respeitando a estrutura com 'id', 'parte' e 'tipo'.
+    """
+    vetor_pergunta = model_embeddings.encode([pergunta])
+
+    # Busca top_k vetores mais similares no índice FAISS
+    D, I = index.search(np.array(vetor_pergunta, dtype=np.float32), top_k)
 
     contexto = ""
     total = 0
 
-    for i in I[0]:
-        artigo = artigos[i]
-        print(f"Chunk {i}: {artigo['artigo']}")
-        titulo = artigo['artigo']
-        fonte = artigo['fonte']
-        texto = artigo['conteudo'].strip()
-        print(f"{f:'-'*5}Conteúdo: {texto}{f:'-'*5}")
-        bloco_formatado = f"{titulo} - {fonte}\n{texto}\n\n"
+    grupos = {}
 
-        if total + len(bloco_formatado) > max_chars:
-            break
+    for idx in I[0]:
+        if idx < 0 or idx >= len(artigos):
+            continue  # Segurança
 
-        contexto += bloco_formatado
-        total += len(bloco_formatado)
-    
+        artigo = artigos[idx]
+        id_completo = artigo.get('id', '')
+        id_base = id_completo.rsplit("_chunk_", 1)[0]  # Pega tudo antes de _chunk_N
+
+        if id_base not in grupos:
+            grupos[id_base] = {
+                "tipo": artigo.get('tipo', 'Tipo desconhecido'),
+                "artigo": artigo.get('artigo', 'Artigo desconhecido'),
+                "fonte": artigo.get('fonte', 'Fonte desconhecida'),
+                "partes": []
+            }
+
+        texto = artigo.get('conteudo', '').strip()
+        grupos[id_base]["partes"].append(texto)
+
+        # Agora formatamos o contexto respeitando essas informações
+        for id_base, dados in grupos.items():
+            tipo = dados["tipo"]
+            artigo = dados["artigo"]
+            fonte = dados["fonte"]
+            partes_texto = "\n".join(dados["partes"])
+
+            bloco_formatado = f"[{tipo}] {artigo} - {fonte}\n{partes_texto}\n\n"
+
+            if total + len(bloco_formatado) > max_chars:
+                break
+
+            contexto += bloco_formatado
+            total += len(bloco_formatado)
+
     return contexto
+
 
 def model_response(user_query, chat_history):
     """Gera resposta usando o modelo Llama-CPP, com contexto jurídico passado

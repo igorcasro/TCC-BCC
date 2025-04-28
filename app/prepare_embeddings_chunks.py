@@ -1,16 +1,12 @@
 import os
 import faiss
 import json
-import textwrap
 import numpy as np
-import nltk
-nltk.download('punkt')
-nltk.download('punkt_tab')
-from nltk.tokenize import sent_tokenize
 
 from sentence_transformers import SentenceTransformer
 from datasets import load_dataset
 from tqdm import tqdm
+from utils import chunk_por_sentencas
 
 # Caminhos para diretórios de entrada e saída
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,14 +17,14 @@ if not os.path.exists(output_path):
     os.makedirs(output_path)
 
 # Parâmetro de chunking
-tamanho_max_chunk = 500  # número máximo de caracteres por bloco
+tamanho_max_chunk = 600  # número máximo de caracteres por bloco
 
 # Carregar o dataset de arquivos RAG
 embeddings_dataset = load_dataset('json', data_files=input_path, split='train')
 print(f"Total de {len(embeddings_dataset)} artigos encontrados")
 
 # Carregar modelo de embeddings
-model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2')
 vector_dim = model.get_sentence_embedding_dimension()
 index = faiss.IndexFlatIP(vector_dim)
 
@@ -40,20 +36,11 @@ chunks_info = []
 print("Gerando embeddings por blocos...")
 for artigo in tqdm(embeddings_dataset):
     conteudo = artigo['conteudo']
-    sentencas = sent_tokenize(conteudo)
-    blocos = []
-    bloco_atual = ""
+    
+    # Chunking baseado em sentenças
+    blocos = chunk_por_sentencas(conteudo, tamanho_max_chars=1200)
 
-    for sent in sentencas:
-        if len(bloco_atual) + len(sent) + 1 <= tamanho_max_chunk:
-            bloco_atual += " " + sent
-        else:
-            blocos.append(bloco_atual.strip())
-            bloco_atual = sent
-
-    if bloco_atual:
-        blocos.append(bloco_atual.strip())
-
+    # Gera os embeddings e salva em blocos
     for i, bloco in enumerate(blocos, start=1):
         vetor = model.encode(bloco.strip())
         vetores.append(vetor)
@@ -62,7 +49,8 @@ for artigo in tqdm(embeddings_dataset):
             "id": f"{artigo['id']}_chunk_{i}",
             "fonte": artigo.get("fonte", ""),
             "tipo": artigo.get("tipo", ""),
-            "artigo": f"{artigo['artigo']} (parte {i})",
+            "artigo": artigo.get("artigo", "").strip(),
+            "parte": i,
             "conteudo": bloco.strip()
         }
 

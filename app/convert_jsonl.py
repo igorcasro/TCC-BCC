@@ -73,7 +73,12 @@ with open(log_path, 'w', encoding='utf-8') as log:
 
             # remoção de 'o' e 'a' isolados no texto (resquícios de símbolos como º e ª)
             texto_limpo = re.sub(r'(\s)[oa](?=\s)', '', texto_limpo) 
-            print(f'Letras isoladas removidas de {base_name}')       
+            print(f'Letras isoladas removidas de {base_name}')  
+
+            # Troca de art. por Artigo, para facilitar posterior processamento
+            artigos_regex = r'(?i)\b(art(?:igo)?\.?)\b'
+            texto_limpo = re.sub(artigos_regex, 'Artigo', texto_limpo) 
+            print(f'Letras isoladas removidas de {base_name}')     
 
             # trocando os algorismos romanos do texto por ordinais
             texto_limpo = substituir_numeros_romanos(texto_limpo)
@@ -81,20 +86,15 @@ with open(log_path, 'w', encoding='utf-8') as log:
                 texto_limpo = re.sub(r'Art\. {romano}\b', r'Art\. {escrito}', texto_limpo)
             print(f'Algarismos romanos alterados em: {base_name}')
 
-            # Regex para capturar todos as possíveis escritas de Artigo
-            artigos_regex = r'(?:^|\s|\-|#)*((?:Art(?:igo)?\.?|art(?:igo)?\.?)\s+\d+(?:[-A-Zºo°]*)?\.?)'
-
-            # Mostra todos os artigos obtidos após o pré-processamento
-            # matches = re.findall(artigos_regex, texto_limpo)
-            # print(f'Artigos detectados no texto: {matches}')
+            artigos_segmentados = r'(?i)\b(art(?:igo|\.?)\.?)\s*(\d+[\dºª\-\.A-Za-z]*)'
 
             # Segmentação
-            blocos_texto = re.split(artigos_regex, texto_limpo)
+            blocos_texto = re.split(artigos_segmentados, texto_limpo)
             artigos = []
             rag_artigos = []
 
             for i in range(1, len(blocos_texto), 2):
-                titulo = blocos_texto[i].strip()
+                titulo = f"{blocos_texto[i].rstrip('.')}"
                 conteudo = blocos_texto[i + 1].strip() if i + 1 < len(blocos_texto) else ""
                 # Verifica se está puxando titulo e conteúdo
                 # print(f'Titulo: {titulo}\nConteudo: {conteudo[:50]}')
@@ -107,7 +107,7 @@ with open(log_path, 'w', encoding='utf-8') as log:
                 if len(conteudo) > 10:  # Ignorar ruído
                     artigos.append({
                         "messages": [
-                            {"role": "user", "content": titulo},
+                            {"role": "user", "content": f"Artigo {titulo}"},
                             {"role": "assistant", "content": conteudo}
                         ]
                     })
@@ -116,7 +116,7 @@ with open(log_path, 'w', encoding='utf-8') as log:
                         "id": rag_artigo_id,
                         "fonte": rag_artigo_fonte,
                         "tipo": rag_artigo_tipo,
-                        "artigo": titulo,
+                        "artigo": f"Artigo {titulo}",
                         "conteudo": conteudo,
                     })
 
