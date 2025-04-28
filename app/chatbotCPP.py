@@ -44,27 +44,20 @@ def load_model():
 llm = load_model()
 
 # Busca o contexto da pergunta, baseado no FAISS
-def recupera_contexto(pergunta, top_k=10, max_chars=3200):
-    """
-    Recupera contexto relevante usando FAISS e respeitando a estrutura com 'id', 'parte' e 'tipo'.
-    """
+def recupera_contexto(pergunta, top_k=5, max_chars=1600):
     vetor_pergunta = model_embeddings.encode([pergunta])
-
-    # Busca top_k vetores mais similares no índice FAISS
     D, I = index.search(np.array(vetor_pergunta, dtype=np.float32), top_k)
-
-    contexto = ""
-    total = 0
 
     grupos = {}
 
+    # Primeiro: apenas agrupar
     for idx in I[0]:
         if idx < 0 or idx >= len(artigos):
-            continue  # Segurança
+            continue
 
         artigo = artigos[idx]
         id_completo = artigo.get('id', '')
-        id_base = id_completo.rsplit("_chunk_", 1)[0]  # Pega tudo antes de _chunk_N
+        id_base = id_completo.rsplit("_chunk_", 1)[0]
 
         if id_base not in grupos:
             grupos[id_base] = {
@@ -74,23 +67,31 @@ def recupera_contexto(pergunta, top_k=10, max_chars=3200):
                 "partes": []
             }
 
-        texto = artigo.get('conteudo', '').strip()
-        grupos[id_base]["partes"].append(texto)
+        grupos[id_base]["partes"].append({
+            "parte": artigo.get("parte", 1),
+            "conteudo": artigo.get("conteudo", "").strip()
+        })
 
-        # Agora formatamos o contexto respeitando essas informações
-        for id_base, dados in grupos.items():
-            tipo = dados["tipo"]
-            artigo = dados["artigo"]
-            fonte = dados["fonte"]
-            partes_texto = "\n".join(dados["partes"])
+    # Segundo: montar o contexto fora do loop
+    contexto = ""
+    total = 0
 
-            bloco_formatado = f"[{tipo}] {artigo} - {fonte}\n{partes_texto}\n\n"
+    for id_base, dados in grupos.items():
+        tipo = dados["tipo"]
+        artigo = dados["artigo"]
+        fonte = dados["fonte"]
 
-            if total + len(bloco_formatado) > max_chars:
-                break
+        # Ordenar as partes pelo número da 'parte'
+        partes_ordenadas = sorted(dados["partes"], key=lambda x: x["parte"])
+        texto_completo = "\n".join(p["conteudo"] for p in partes_ordenadas)
 
-            contexto += bloco_formatado
-            total += len(bloco_formatado)
+        bloco_formatado = f"[{tipo}] {artigo} - {fonte}\n{texto_completo}\n\n"
+
+        if total + len(bloco_formatado) > max_chars:
+            break
+
+        contexto += bloco_formatado
+        total += len(bloco_formatado)
 
     return contexto
 

@@ -42,7 +42,8 @@ for artigo in tqdm(embeddings_dataset):
 
     # Gera os embeddings e salva em blocos
     for i, bloco in enumerate(blocos, start=1):
-        vetor = model.encode(bloco.strip())
+        texto_formatado = f"[{artigo.get('tipo', '')}] {artigo.get('artigo', '')} - {artigo.get('fonte', '')}\n{bloco.strip()}"
+        vetor = model.encode(texto_formatado, show_progress_bar=True)
         vetores.append(vetor)
 
         chunk = {
