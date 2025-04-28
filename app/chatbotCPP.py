@@ -44,7 +44,7 @@ def load_model():
 llm = load_model()
 
 # Busca o contexto da pergunta, baseado no FAISS
-def recupera_contexto(pergunta, top_k=5, max_chars=1600):
+def recupera_contexto(pergunta, top_k=3, max_chars=3200):
     vetor_pergunta = model_embeddings.encode([pergunta])
     D, I = index.search(np.array(vetor_pergunta, dtype=np.float32), top_k)
 
@@ -115,9 +115,9 @@ def model_response(user_query, chat_history):
         "Você é um assistente jurídico especializado em leis brasileiras. "
         "Todas as respostas devem ser baseadas apenas nas informações fornecidas no contexto a seguir. "
         "Se a informação não estiver presente, diga que não pode responder com base nos dados fornecidos.\n\n"
-        # "=== CONTEXTO INÍCIO ===\n"
+        "=== CONTEXTO INÍCIO ===\n"
         f"{contexto}\n"
-        # "=== CONTEXTO FIM ===\n"
+        "=== CONTEXTO FIM ===\n"
         "Se a resposta não estiver no contexto acima, diga que não pode responder."
     )
     messages.append({"role": "system", "content": system_prompt})
