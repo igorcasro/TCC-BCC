@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import faiss
 import os, json
@@ -44,38 +45,73 @@ def load_model():
 llm = load_model()
 
 # Busca o contexto da pergunta, baseado no FAISS
-def recupera_contexto(pergunta, top_k=3, max_chars=3200):
-    vetor_pergunta = model_embeddings.encode([pergunta])
-    D, I = index.search(np.array(vetor_pergunta, dtype=np.float32), top_k)
+def extrair_numero_artigo(pergunta):
+    """Extrai o número do artigo da pergunta, se existir."""
+    match = re.search(r"artigo\s*(\d+)", pergunta, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return None
+
+def recupera_contexto(pergunta, top_k=3, max_chars=1600):
+    numero_artigo = extrair_numero_artigo(pergunta)
 
     grupos = {}
-
-    # Primeiro: apenas agrupar
-    for idx in I[0]:
-        if idx < 0 or idx >= len(artigos):
-            continue
-
-        artigo = artigos[idx]
-        id_completo = artigo.get('id', '')
-        id_base = id_completo.rsplit("_chunk_", 1)[0]
-
-        if id_base not in grupos:
-            grupos[id_base] = {
-                "tipo": artigo.get('tipo', 'Tipo desconhecido'),
-                "artigo": artigo.get('artigo', 'Artigo desconhecido'),
-                "fonte": artigo.get('fonte', 'Fonte desconhecida'),
-                "partes": []
-            }
-
-        grupos[id_base]["partes"].append({
-            "parte": artigo.get("parte", 1),
-            "conteudo": artigo.get("conteudo", "").strip()
-        })
-
-    # Segundo: montar o contexto fora do loop
     contexto = ""
     total = 0
 
+    if numero_artigo is not None:
+        # Estratégia 1: Buscar manualmente chunks que contenham o artigo específico
+        artigos_filtrados = [
+            artigo for artigo in artigos
+            if str(numero_artigo) in artigo.get('artigo', '')
+        ]
+
+        if artigos_filtrados:
+            # Agrupar os chunks por ID base
+            for artigo in artigos_filtrados:
+                id_completo = artigo.get('id', '')
+                id_base = id_completo.rsplit("_chunk_", 1)[0]
+
+                if id_base not in grupos:
+                    grupos[id_base] = {
+                        "tipo": artigo.get('tipo', 'Tipo desconhecido'),
+                        "artigo": artigo.get('artigo', 'Artigo desconhecido'),
+                        "fonte": artigo.get('fonte', 'Fonte desconhecida'),
+                        "partes": []
+                    }
+
+                grupos[id_base]["partes"].append({
+                    "parte": artigo.get("parte", 1),
+                    "conteudo": artigo.get("conteudo", "").strip()
+                })
+
+    if not grupos:
+        # Estratégia 2: Busca normal via embeddings se não achou pelo número de artigo
+        vetor_pergunta = model_embeddings.encode([pergunta])
+        D, I = index.search(np.array(vetor_pergunta, dtype=np.float32), top_k)
+
+        for idx in I[0]:
+            if idx < 0 or idx >= len(artigos):
+                continue
+
+            artigo = artigos[idx]
+            id_completo = artigo.get('id', '')
+            id_base = id_completo.rsplit("_chunk_", 1)[0]
+
+            if id_base not in grupos:
+                grupos[id_base] = {
+                    "tipo": artigo.get('tipo', 'Tipo desconhecido'),
+                    "artigo": artigo.get('artigo', 'Artigo desconhecido'),
+                    "fonte": artigo.get('fonte', 'Fonte desconhecida'),
+                    "partes": []
+                }
+
+            grupos[id_base]["partes"].append({
+                "parte": artigo.get("parte", 1),
+                "conteudo": artigo.get("conteudo", "").strip()
+            })
+
+    # Montar o contexto final
     for id_base, dados in grupos.items():
         tipo = dados["tipo"]
         artigo = dados["artigo"]
@@ -115,10 +151,10 @@ def model_response(user_query, chat_history):
         "Você é um assistente jurídico especializado em leis brasileiras. "
         "Todas as respostas devem ser baseadas apenas nas informações fornecidas no contexto a seguir. "
         "Se a informação não estiver presente, diga que não pode responder com base nos dados fornecidos.\n\n"
-        "=== CONTEXTO INÍCIO ===\n"
+        # "=== CONTEXTO INÍCIO ===\n"
         f"{contexto}\n"
-        "=== CONTEXTO FIM ===\n"
-        "Se a resposta não estiver no contexto acima, diga que não pode responder."
+        # "=== CONTEXTO FIM ===\n"
+        "Utilize o contexto como base, porém, melhore a resposta para uma maneira mais formal."
     )
     messages.append({"role": "system", "content": system_prompt})
 
